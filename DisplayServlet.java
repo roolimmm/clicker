@@ -39,9 +39,15 @@ public class DisplayServlet extends HttpServlet {
             }
         }
         
-        // Determine view mode (question or statistics)
+        // Determine view mode (question, statistics, or end)
         String mode = request.getParameter("mode");
         boolean showStats = (mode != null && mode.equals("stats"));
+        boolean showEndOfQuiz = (mode != null && mode.equals("end"));
+        
+        // Auto-show end of quiz if we're at the last question and in stats mode
+        if (questionNo > TOTAL_QUESTIONS && showStats) {
+            showEndOfQuiz = true;
+        }
         
         // JDBC variables
         Connection conn = null;
@@ -80,13 +86,21 @@ public class DisplayServlet extends HttpServlet {
             out.println(".answers { margin-top: 15px; }");
             out.println(".answers div { margin-bottom: 10px; }");
             out.println(".progress { margin-bottom: 15px; font-weight: bold; }");
+            out.println(".end-of-quiz { text-align: center; background-color: #f9f9f9; padding: 40px; border-radius: 10px; margin: 40px auto; max-width: 600px; }");
+            out.println(".end-of-quiz h2 { color: #3498db; margin-bottom: 20px; }");
+            out.println(".end-of-quiz .summary { font-size: 18px; margin-bottom: 30px; }");
+            out.println(".end-of-quiz .restart { padding: 12px 24px; background-color: #3498db; color: white; border: none; cursor: pointer; text-decoration: none; font-size: 16px; border-radius: 5px; }");
+            out.println(".end-of-quiz .restart:hover { background-color: #2980b9; }");
             out.println("</style>");
             out.println("</head>");
             out.println("<body>");
             
             out.println("<h1>Bahoot.io!</h1>");
             
-            if (showStats) {
+            if (showEndOfQuiz) {
+                // Show end of quiz summary
+                showEndOfQuiz(out, conn);
+            } else if (showStats) {
                 // Show statistics view
                 showStatistics(out, conn, questionNo);
                 
@@ -95,6 +109,9 @@ public class DisplayServlet extends HttpServlet {
                 out.println("<a href='display?questionNo=" + questionNo + "'>Back to Question</a>");
                 if (questionNo < TOTAL_QUESTIONS) {
                     out.println("<a href='display?questionNo=" + (questionNo + 1) + "'>Next Question</a>");
+                } else {
+                    // If we're at the last question, show the End Quiz button
+                    out.println("<a href='display?mode=end'>End Quiz</a>");
                 }
                 out.println("</div>");
             } else {
@@ -151,12 +168,7 @@ public class DisplayServlet extends HttpServlet {
                 out.println("</div>");
                 out.println("</div>");
                 
-            } else {
-                out.println("<div class='question-content'>");
-                out.println("<h3>Question #" + questionNo + "</h3>");
-                out.println("<p>Question not found. Please ensure you have added questions to the database.</p>");
-                out.println("</div>");
-            }
+            } 
         } finally {
             if (rs != null) rs.close();
             if (pstmt != null) pstmt.close();
@@ -173,8 +185,6 @@ public class DisplayServlet extends HttpServlet {
             pstmt = conn.prepareStatement(questionSql);
             pstmt.setInt(1, questionNo);
             rs = pstmt.executeQuery();
-            
-            out.println("<h2>Statistics for Question #" + questionNo + "</h2>");
             
             if (rs.next()) {
                 out.println("<div class='question-content'>");
@@ -263,6 +273,52 @@ public class DisplayServlet extends HttpServlet {
             out.println("<script>");
             out.println("setTimeout(function() { location.reload(); }, 5000);"); // Refresh every 5 seconds
             out.println("</script>");
+        } finally {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+        }
+    }
+    
+    private void showEndOfQuiz(PrintWriter out, Connection conn) throws SQLException {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            // Query to get total responses across all questions
+            String sql = "SELECT COUNT(*) as total_responses FROM responses";
+            pstmt = conn.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+            
+            int totalResponses = 0;
+            
+            if (rs.next()) {
+                totalResponses = rs.getInt("total_responses");
+            }
+            
+            out.println("<div class='end-of-quiz'>");
+            out.println("<h2>End of Quiz</h2>");
+            out.println("<div class='summary'>");
+            out.println("<p>Thank you for participating in this quiz!</p>");
+            out.println("</div>");
+            
+            // Navigation to restart or review questions
+            out.println("<div>");
+            out.println("<a href='display?questionNo=1' class='restart'>Start New Quiz</a>");
+            out.println("</div>");
+            
+            // Question review links
+            out.println("<div style='margin-top: 30px;'>");
+            out.println("<h3>Review Questions</h3>");
+            out.println("<div style='display: flex; flex-wrap: wrap; justify-content: center;'>");
+            
+            for (int i = 1; i <= TOTAL_QUESTIONS; i++) {
+                out.println("<a href='display?questionNo=" + i + "&mode=stats' style='margin: 5px; padding: 10px 15px; background-color: #eee; border-radius: 5px; text-decoration: none; color: #333;'>Q" + i + "</a>");
+            }
+            
+            out.println("</div>");
+            out.println("</div>");
+            out.println("</div>");
+            
         } finally {
             if (rs != null) rs.close();
             if (pstmt != null) pstmt.close();
