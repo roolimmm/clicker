@@ -15,6 +15,9 @@ public class DisplayServlet extends HttpServlet {
     private static final String USER = "myuser";
     private static final String PASS = "xxxx";
     
+    // Total number of questions in sequence
+    private static final int TOTAL_QUESTIONS = 5;
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
@@ -22,16 +25,23 @@ public class DisplayServlet extends HttpServlet {
         response.setContentType("text/html");
         PrintWriter out = response.getWriter();
         
-        // Get the questionNo parameter, default to 8 if not provided
+        // Get the questionNo parameter, default to 1 if not provided
         String questionNoParam = request.getParameter("questionNo");
-        int questionNo = 8; // Default question number
+        int questionNo = 1; // Default to question 1
         if (questionNoParam != null && !questionNoParam.isEmpty()) {
             try {
                 questionNo = Integer.parseInt(questionNoParam);
+                // Ensure questionNo is within valid range
+                if (questionNo < 1) questionNo = 1;
+                if (questionNo > TOTAL_QUESTIONS) questionNo = TOTAL_QUESTIONS;
             } catch (NumberFormatException e) {
                 // Invalid number, use default
             }
         }
+        
+        // Determine view mode (question or statistics)
+        String mode = request.getParameter("mode");
+        boolean showStats = (mode != null && mode.equals("stats"));
         
         // JDBC variables
         Connection conn = null;
@@ -48,7 +58,7 @@ public class DisplayServlet extends HttpServlet {
             out.println("<!DOCTYPE html>");
             out.println("<html>");
             out.println("<head>");
-            out.println("<title>Clicker Statistics</title>");
+            out.println("<title>Bahoot.io!</title>");
             out.println("<style>");
             out.println("body { font-family: Arial, sans-serif; margin: 20px; }");
             out.println("h1 { color: #2c3e50; }");
@@ -62,39 +72,124 @@ public class DisplayServlet extends HttpServlet {
             out.println(".question-selector select { padding: 8px; }");
             out.println(".question-selector button { padding: 8px 16px; background-color: #3498db; color: white; border: none; cursor: pointer; }");
             out.println(".question-selector button:hover { background-color: #2980b9; }");
+            out.println(".navigation { margin: 20px 0; }");
+            out.println(".navigation a { padding: 8px 16px; background-color: #3498db; color: white; border: none; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 10px; }");
+            out.println(".navigation a:hover { background-color: #2980b9; }");
+            out.println(".question-content { background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px; }");
+            out.println(".question-content h3 { margin-top: 0; }");
+            out.println(".answers { margin-top: 15px; }");
+            out.println(".answers div { margin-bottom: 10px; }");
+            out.println(".progress { margin-bottom: 15px; font-weight: bold; }");
             out.println("</style>");
             out.println("</head>");
             out.println("<body>");
             
-            out.println("<h1>Clicker Response Statistics</h1>");
+            out.println("<h1>Bahoot.io!</h1>");
             
-            // Question selector form
-            out.println("<div class='question-selector'>");
-            out.println("<form method='get'>");
-            out.println("Question Number: <select name='questionNo'>");
-            
-            // Get all available question numbers
-            stmt = conn.createStatement();
-            String distinctQuestionsQuery = "SELECT DISTINCT questionNo FROM responses ORDER BY questionNo";
-            ResultSet distinctQuestions = stmt.executeQuery(distinctQuestionsQuery);
-            
-            while (distinctQuestions.next()) {
-                int qNo = distinctQuestions.getInt("questionNo");
-                out.println("<option value='" + qNo + "'" + (qNo == questionNo ? " selected" : "") + ">" + qNo + "</option>");
+            if (showStats) {
+                // Show statistics view
+                showStatistics(out, conn, questionNo);
+                
+                // Navigation buttons
+                out.println("<div class='navigation'>");
+                out.println("<a href='display?questionNo=" + questionNo + "'>Back to Question</a>");
+                if (questionNo < TOTAL_QUESTIONS) {
+                    out.println("<a href='display?questionNo=" + (questionNo + 1) + "'>Next Question</a>");
+                }
+                out.println("</div>");
+            } else {
+                // Show question view
+                showQuestion(out, conn, questionNo);
+                
+                // View Statistics button
+                out.println("<div class='navigation'>");
+                out.println("<a href='display?questionNo=" + questionNo + "&mode=stats'>View Statistics</a>");
+                out.println("</div>");
             }
             
-            out.println("</select>");
-            out.println("<button type='submit'>View Statistics</button>");
-            out.println("</form>");
-            out.println("</div>");
+            out.println("</body>");
+            out.println("</html>");
+            
+        } catch (Exception e) {
+            // Handle errors
+            out.println("<html><body>");
+            out.println("<h2>Error occurred!</h2>");
+            out.println("<p>" + e.getMessage() + "</p>");
+            out.println("</body></html>");
+            e.printStackTrace();
+        } 
+    }
+    
+    private void showQuestion(PrintWriter out, Connection conn, int questionNo) throws SQLException {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            // Query to get question text
+            // Assuming you have a 'questions' table with this structure
+            String sql = "SELECT questionText, optionA, optionB, optionC, optionD FROM questions WHERE questionNo = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, questionNo);
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                String questionText = rs.getString("questionText");
+                String optionA = rs.getString("optionA");
+                String optionB = rs.getString("optionB");
+                String optionC = rs.getString("optionC");
+                String optionD = rs.getString("optionD");
+                
+                out.println("<div class='question-content'>");
+                out.println("<h3>Question #" + questionNo + "</h3>");
+                out.println("<p>" + questionText + "</p>");
+                
+                out.println("<div class='answers'>");
+                out.println("<div><strong>A:</strong> " + optionA + "</div>");
+                out.println("<div><strong>B:</strong> " + optionB + "</div>");
+                out.println("<div><strong>C:</strong> " + optionC + "</div>");
+                out.println("<div><strong>D:</strong> " + optionD + "</div>");
+                out.println("</div>");
+                out.println("</div>");
+                
+            } else {
+                out.println("<div class='question-content'>");
+                out.println("<h3>Question #" + questionNo + "</h3>");
+                out.println("<p>Question not found. Please ensure you have added questions to the database.</p>");
+                out.println("</div>");
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+        }
+    }
+    
+    private void showStatistics(PrintWriter out, Connection conn, int questionNo) throws SQLException {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            // First, get the question text
+            String questionSql = "SELECT questionText FROM questions WHERE questionNo = ?";
+            pstmt = conn.prepareStatement(questionSql);
+            pstmt.setInt(1, questionNo);
+            rs = pstmt.executeQuery();
             
             out.println("<h2>Statistics for Question #" + questionNo + "</h2>");
             
+            if (rs.next()) {
+                out.println("<div class='question-content'>");
+                out.println("<p>" + rs.getString("questionText") + "</p>");
+                out.println("</div>");
+            }
+            
+            rs.close();
+            pstmt.close();
+            
             // Execute SQL query to get counts for each choice
             String sqlStr = "SELECT choice, COUNT(*) as count FROM responses WHERE questionNo = ? GROUP BY choice ORDER BY choice";
-            PreparedStatement pstmt = conn.prepareStatement(sqlStr);
+            pstmt = conn.prepareStatement(sqlStr);
             pstmt.setInt(1, questionNo);
-            ResultSet rs = pstmt.executeQuery();
+            rs = pstmt.executeQuery();
             
             // Display results in a table
             out.println("<table>");
@@ -164,33 +259,13 @@ public class DisplayServlet extends HttpServlet {
             
             out.println("</div>");
             
-            // Add auto-refresh script
+            // Add auto-refresh script for statistics view
             out.println("<script>");
             out.println("setTimeout(function() { location.reload(); }, 5000);"); // Refresh every 5 seconds
             out.println("</script>");
-            
-            out.println("</body>");
-            out.println("</html>");
-            
-            // Clean-up
-            rs.close();
-            stmt.close();
-            conn.close();
-        } catch (Exception e) {
-            // Handle errors
-            out.println("<html><body>");
-            out.println("<h2>Error occurred!</h2>");
-            out.println("<p>" + e.getMessage() + "</p>");
-            out.println("</body></html>");
-            e.printStackTrace();
         } finally {
-            // Close resources
-            try {
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException se) {
-                se.printStackTrace();
-            }
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
         }
     }
 }
