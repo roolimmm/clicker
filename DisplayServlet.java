@@ -201,46 +201,14 @@ public class DisplayServlet extends HttpServlet {
             pstmt.setInt(1, questionNo);
             rs = pstmt.executeQuery();
             
-            // Display results in a table
-            out.println("<table>");
-            out.println("<tr><th>Choice</th><th>Count</th><th>Percentage</th></tr>");
-            
             Map<String, Integer> choiceCounts = new HashMap<>();
             int totalResponses = 0;
-            
-            // First pass to get total count
             while (rs.next()) {
                 String choice = rs.getString("choice");
                 int count = rs.getInt("count");
                 choiceCounts.put(choice, count);
                 totalResponses += count;
             }
-            
-            // Display each choice with count and percentage
-            for (char choice = 'a'; choice <= 'd'; choice++) {
-                String choiceStr = String.valueOf(choice);
-                int count = choiceCounts.getOrDefault(choiceStr, 0);
-                double percentage = totalResponses > 0 ? ((double) count / totalResponses) * 100 : 0;
-                
-                out.println("<tr>");
-                out.println("<td>" + choiceStr.toUpperCase() + "</td>");
-                out.println("<td>" + count + "</td>");
-                out.println("<td>" + String.format("%.1f%%", percentage) + "</td>");
-                out.println("</tr>");
-            }
-            
-            // Display total row
-            out.println("<tr class='total'>");
-            out.println("<td>Total</td>");
-            out.println("<td>" + totalResponses + "</td>");
-            out.println("<td>100%</td>");
-            out.println("</tr>");
-            
-            out.println("</table>");
-            
-            // Add a simple bar chart visualization
-            out.println("<h2>Visualization</h2>");
-            out.println("<div style='margin-top: 20px;'>");
             
             for (char choice = 'a'; choice <= 'd'; choice++) {
                 String choiceStr = String.valueOf(choice);
