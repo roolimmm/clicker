@@ -1,32 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
+    android:padding="16dp"
     tools:context=".MainActivity">
 
     <TextView
         android:id="@+id/tvWelcome"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
         android:text="Welcome!"
         android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="24dp"/>
+        android:textStyle="bold" />
 
     <TextView
-        android:layout_width="wrap_content"
+        android:id="@+id/tvQuestion"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Select your response:"
-        android:textSize="24sp"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="32dp"
+        android:text="Question will appear here"
+        android:textSize="18sp" />
 
     <GridLayout
-        android:layout_width="323dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:alignmentMode="alignMargins"
@@ -35,36 +34,55 @@
 
         <Button
             android:id="@+id/buttonA"
-            android:layout_width="150dp"
+            android:layout_width="0dp"
             android:layout_height="100dp"
+            android:layout_columnWeight="1"
             android:layout_margin="8dp"
             android:text="A"
             android:textSize="32sp" />
 
         <Button
             android:id="@+id/buttonB"
-            android:layout_width="150dp"
+            android:layout_width="0dp"
             android:layout_height="100dp"
+            android:layout_columnWeight="1"
             android:layout_margin="8dp"
             android:text="B"
             android:textSize="32sp" />
 
         <Button
             android:id="@+id/buttonC"
-            android:layout_width="150dp"
+            android:layout_width="0dp"
             android:layout_height="100dp"
+            android:layout_columnWeight="1"
             android:layout_margin="8dp"
             android:text="C"
             android:textSize="32sp" />
 
         <Button
             android:id="@+id/buttonD"
-            android:layout_width="150dp"
+            android:layout_width="0dp"
             android:layout_height="100dp"
+            android:layout_columnWeight="1"
             android:layout_margin="8dp"
             android:text="D"
             android:textSize="32sp" />
 
     </GridLayout>
+
+    <Button
+        android:id="@+id/buttonNext"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Next Question" />
+
+    <Button
+        android:id="@+id/buttonExit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Exit App"
+        android:visibility="gone" />
 
 </LinearLayout>
